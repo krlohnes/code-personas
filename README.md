@@ -25,9 +25,22 @@ A persona management system for Claude Code that allows you to switch between di
 2. **Configure Claude Code** by adding to your global settings file:
    ```json
    {
-     "userPromptSubmitHook": "~/.claude/hooks/user-prompt-submit"
+     "hooks": {
+       "UserPromptSubmit": [
+         {
+           "hooks": [
+             {
+               "type": "command",
+               "command": "/Users/your-username/.claude/hooks/user-prompt-submit"
+             }
+           ]
+         }
+       ]
+     }
    }
    ```
+   
+   **Replace `/Users/your-username/` with your actual home directory path**
    
    **Settings file location:**
    - macOS: `~/.claude/settings.json`
@@ -37,10 +50,21 @@ A persona management system for Claude Code that allows you to switch between di
 ### Option 2: Per-Project Installation
 
 1. **Clone or copy the `.claude/` directory** to your project root
-2. **Configure Claude Code** to use the local hook:
+2. **Configure Claude Code** to use the local hook in your project's settings:
    ```json
    {
-     "userPromptSubmitHook": ".claude/hooks/user-prompt-submit"
+     "hooks": {
+       "UserPromptSubmit": [
+         {
+           "hooks": [
+             {
+               "type": "command", 
+               "command": "./.claude/hooks/user-prompt-submit"
+             }
+           ]
+         }
+       ]
+     }
    }
    ```
 

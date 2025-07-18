@@ -37,30 +37,12 @@ The system looks for persona files in:
 ```bash
 #!/bin/bash
 
-# Define directories (project-specific takes precedence)
-LOCAL_PERSONAS_DIR=".claude/personas"
-GLOBAL_PERSONAS_DIR="$HOME/.claude/personas"
-LOCAL_STATE_FILE=".claude/state/current-persona"
-GLOBAL_STATE_FILE="$HOME/.claude/state/current-persona"
-
 # Use local state if .claude exists locally, otherwise global
 if [ -d ".claude" ]; then
-    STATE_FILE="$LOCAL_STATE_FILE"
+    STATE_FILE=".claude/state/current-persona"
 else
-    STATE_FILE="$GLOBAL_STATE_FILE"
+    STATE_FILE="$HOME/.claude/state/current-persona"
 fi
-
-# Function to find persona file (local first, then global)
-find_persona() {
-    local name="$1"
-    if [ -f "$LOCAL_PERSONAS_DIR/$name.md" ]; then
-        echo "$LOCAL_PERSONAS_DIR/$name.md"
-    elif [ -f "$GLOBAL_PERSONAS_DIR/$name.md" ]; then
-        echo "$GLOBAL_PERSONAS_DIR/$name.md"
-    else
-        echo ""
-    fi
-}
 
 # Function to list all personas (local and global, with indicators)
 list_personas() {
@@ -69,9 +51,9 @@ list_personas() {
     # Track seen personas to avoid duplicates
     declare -A seen_personas
     
-    # List local personas first (with [local] indicator)
-    if [ -d "$LOCAL_PERSONAS_DIR" ]; then
-        for file in "$LOCAL_PERSONAS_DIR"/*.md; do
+    # List local personas first
+    if [ -d ".claude/personas" ]; then
+        for file in .claude/personas/*.md; do
             if [ -f "$file" ]; then
                 name=$(basename "$file" .md)
                 echo "  - $name [local]"
@@ -80,9 +62,9 @@ list_personas() {
         done
     fi
     
-    # List global personas (with [global] indicator, skip if already seen)
-    if [ -d "$GLOBAL_PERSONAS_DIR" ]; then
-        for file in "$GLOBAL_PERSONAS_DIR"/*.md; do
+    # List global personas (skip if already seen)
+    if [ -d "$HOME/.claude/personas" ]; then
+        for file in "$HOME/.claude/personas"/*.md; do
             if [ -f "$file" ]; then
                 name=$(basename "$file" .md)
                 if [ -z "${seen_personas[$name]}" ]; then
@@ -115,19 +97,21 @@ case "$1" in
         fi
         ;;
     *)
-        persona_file=$(find_persona "$1")
-        if [ -n "$persona_file" ]; then
-            mkdir -p "$(dirname "$STATE_FILE")"
-            echo "$1" > "$STATE_FILE"
-            if [[ "$persona_file" == "$LOCAL_PERSONAS_DIR"* ]]; then
-                echo "Switched to persona: $1 [local]"
-            else
-                echo "Switched to persona: $1 [global]"
-            fi
+        # Find persona file (local first, then global)
+        if [ -f ".claude/personas/$1.md" ]; then
+            persona_file=".claude/personas/$1.md"
+            location="[local]"
+        elif [ -f "$HOME/.claude/personas/$1.md" ]; then
+            persona_file="$HOME/.claude/personas/$1.md" 
+            location="[global]"
         else
             echo "Persona '$1' not found. Use '/persona list' to see available personas."
             exit 1
         fi
+        
+        mkdir -p "$(dirname "$STATE_FILE")"
+        echo "$1" > "$STATE_FILE"
+        echo "Switched to persona: $1 $location"
         ;;
 esac
 ```
