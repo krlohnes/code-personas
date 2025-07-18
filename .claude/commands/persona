@@ -11,34 +11,37 @@ fi
 list_personas() {
     echo "Available personas:"
     
-    # Track seen personas to avoid duplicates
-    declare -A seen_personas
-    
     # List local personas first
+    local_found=false
     if [ -d ".claude/personas" ]; then
         for file in .claude/personas/*.md; do
             if [ -f "$file" ]; then
                 name=$(basename "$file" .md)
                 echo "  - $name [local]"
-                seen_personas["$name"]=1
+                local_found=true
             fi
         done
     fi
     
-    # List global personas (skip if already seen)
+    # List global personas (simple approach - show all, duplicates marked)
+    global_found=false
     if [ -d "$HOME/.claude/personas" ]; then
         for file in "$HOME/.claude/personas"/*.md; do
             if [ -f "$file" ]; then
                 name=$(basename "$file" .md)
-                if [ -z "${seen_personas[$name]}" ]; then
+                # Check if local version exists
+                if [ -f ".claude/personas/$name.md" ]; then
+                    echo "  - $name [global] (overridden by local)"
+                else
                     echo "  - $name [global]"
                 fi
+                global_found=true
             fi
         done
     fi
     
     # If no personas found
-    if [ ${#seen_personas[@]} -eq 0 ]; then
+    if [ "$local_found" = false ] && [ "$global_found" = false ]; then
         echo "  No personas found"
     fi
 }
