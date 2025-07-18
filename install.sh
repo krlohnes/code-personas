@@ -28,9 +28,10 @@ fi
 echo "📂 Copying personas system files..."
 cp -r "$SCRIPT_DIR/.claude/"* "$CLAUDE_DIR/"
 
-# Make hook executable
+# Make executables
 chmod +x "$CLAUDE_DIR/hooks/user-prompt-submit"
-echo "🔧 Made hook executable"
+chmod +x "$CLAUDE_DIR/commands/persona"
+echo "🔧 Made hook and command executable"
 
 # Handle settings.json
 if [ ! -f "$SETTINGS_FILE" ]; then
