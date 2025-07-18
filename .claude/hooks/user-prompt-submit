@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# UserPromptSubmit Hook - Injects active persona into user prompts
+# This hook automatically prepends the active persona instructions to user messages
+
+# Define directories and state files (local first, then global)
+LOCAL_STATE_FILE=".claude/state/current-persona"
+GLOBAL_STATE_FILE="$HOME/.claude/state/current-persona"
+LOCAL_PERSONAS_DIR=".claude/personas"
+GLOBAL_PERSONAS_DIR="$HOME/.claude/personas"
+
+# Determine which state file to use
+if [ -f "$LOCAL_STATE_FILE" ]; then
+    STATE_FILE="$LOCAL_STATE_FILE"
+elif [ -f "$GLOBAL_STATE_FILE" ]; then
+    STATE_FILE="$GLOBAL_STATE_FILE"
+else
+    # No active persona, proceed normally
+    exit 0
+fi
+
+# Read the current persona
+current_persona=$(cat "$STATE_FILE")
+
+# Function to find persona file (local first, then global)
+find_persona_file() {
+    local name="$1"
+    if [ -f "$LOCAL_PERSONAS_DIR/$name.md" ]; then
+        echo "$LOCAL_PERSONAS_DIR/$name.md"
+    elif [ -f "$GLOBAL_PERSONAS_DIR/$name.md" ]; then
+        echo "$GLOBAL_PERSONAS_DIR/$name.md"
+    else
+        echo ""
+    fi
+}
+
+# Find the persona file
+persona_file=$(find_persona_file "$current_persona")
+
+# Check if persona file exists
+if [ -z "$persona_file" ]; then
+    echo "Warning: Active persona '$current_persona' file not found" >&2
+    exit 0
+fi
+
+# Read the persona content
+persona_content=$(cat "$persona_file")
+
+# Inject persona into the user prompt
+echo "<system-reminder>"
+echo "ACTIVE PERSONA: $current_persona"
+echo ""
+echo "$persona_content"
+echo "</system-reminder>"
+echo ""
+echo "User request:"

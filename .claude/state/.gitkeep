@@ -1,0 +1,5 @@
+# State Directory
+
+This directory contains runtime state for the personas system.
+
+- `current-persona` - Contains the name of the currently active persona
