@@ -54,12 +54,21 @@ case "$1" in
         rm -f "$STATE_FILE"
         echo "Cleared current persona"
         ;;
+    "current")
+        if [ -f "$STATE_FILE" ]; then
+            current=$(cat "$STATE_FILE")
+            echo "Current persona: $current"
+        else
+            echo "Current persona: none"
+        fi
+        ;;
     "")
         echo "Persona Management"
         echo ""
         echo "Usage:"
         echo "  /persona [name]   - Switch to a persona"
         echo "  /persona list     - List available personas"
+        echo "  /persona current  - Show current persona"
         echo "  /persona clear    - Clear current persona"
         echo ""
         if [ -f "$STATE_FILE" ]; then

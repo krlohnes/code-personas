@@ -13,13 +13,28 @@ A persona management system for Claude Code that allows you to switch between di
 
 ### Option 1: Global Installation (Recommended)
 
-1. **Copy the system to your global Claude directory**:
+1. **Clone and install**:
    ```bash
    # Clone this repo
    git clone https://github.com/your-username/code-personas.git
+   cd code-personas
    
+   # Run the installer
+   ./install.sh
+   ```
+
+   The installer will:
+   - Copy all persona files to `~/.claude/`
+   - Set proper executable permissions
+   - Update your `settings.json` with hook configuration
+   - Create backups of existing settings
+
+### Option 2: Manual Installation
+
+1. **Copy the system to your global Claude directory**:
+   ```bash
    # Copy to global Claude directory
-   cp -r code-personas/.claude/* ~/.claude/
+   cp -r .claude/* ~/.claude/
    ```
 
 2. **Configure Claude Code** by adding to your global settings file:
@@ -101,6 +116,7 @@ When listing personas with `/persona list`, you'll see:
    /persona dev
    /persona reviewer
    /persona hippie
+   /persona boston
    ```
 
 3. **Clear current persona**:
@@ -109,6 +125,11 @@ When listing personas with `/persona list`, you'll see:
    ```
 
 4. **Check current persona**:
+   ```
+   /persona current
+   ```
+   
+   Or just:
    ```
    /persona
    ```
@@ -132,6 +153,12 @@ When listing personas with `/persona list`, you'll see:
 - Calls programmers "lightning rock wizards"
 - Provides zero practical advice but maximum cosmic vibes
 - Philosophizes about the spiritual meaning of code
+
+### `boston` - Southie Code Master
+- Wicked smaht Boston programmer with thick accent
+- World-class coding skills but talks like he's from the depahted
+- Swears like a sailor but occasionally apologizes for it
+- Calls you "kid", "boss", "chief", "guy", "buddy", "pal"
 
 ## Creating Custom Personas
 
@@ -194,6 +221,13 @@ Example persona structure:
 # Now Claude acts as a code reviewer
 "Review this pull request"
 # Claude provides thorough code review with specific feedback
+
+# Switch to Boston coder mode
+/persona boston
+
+# Now Claude codes with a wicked Boston accent
+"Help me optimize this algorithm"
+# Claude responds: "Listen boss, that algorithm's slower than the fuckin' Green Line..."
 
 # Return to default behavior
 /persona clear
