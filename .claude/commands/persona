@@ -7,6 +7,144 @@ else
     STATE_FILE="$HOME/.claude/state/current-persona"
 fi
 
+# Function to merge two personas intelligently
+merge_personas() {
+    local persona1="$1"
+    local persona2="$2"
+    local output_name="$3"
+    
+    # Find persona files
+    local file1 file2
+    if [ -f ".claude/personas/$persona1.md" ]; then
+        file1=".claude/personas/$persona1.md"
+    elif [ -f "$HOME/.claude/personas/$persona1.md" ]; then
+        file1="$HOME/.claude/personas/$persona1.md"
+    else
+        echo "Persona '$persona1' not found."
+        return 1
+    fi
+    
+    if [ -f ".claude/personas/$persona2.md" ]; then
+        file2=".claude/personas/$persona2.md"
+    elif [ -f "$HOME/.claude/personas/$persona2.md" ]; then
+        file2="$HOME/.claude/personas/$persona2.md"
+    else
+        echo "Persona '$persona2' not found."
+        return 1
+    fi
+    
+    # Create output file path (always local)
+    mkdir -p ".claude/personas"
+    local output_file=".claude/personas/${output_name}.md"
+    
+    echo "Creating merged persona: $output_name"
+    echo "This will prompt Claude to intelligently merge $persona1 and $persona2"
+    echo ""
+    echo "Persona files that will be merged:"
+    echo "- $persona1: $file1"
+    echo "- $persona2: $file2"
+    echo ""
+    echo "Output will be saved to: $output_file"
+    echo ""
+    echo "Claude will analyze both personas and create a balanced hybrid that combines"
+    echo "the best characteristics of both. This is an intelligent merge that considers"
+    echo "personality traits, communication styles, and core principles."
+    echo ""
+    read -p "Continue with intelligent merge? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Merge cancelled."
+        return 1
+    fi
+    
+    # Create a temporary file with merge instructions for Claude
+    cat > "/tmp/persona_merge_request.txt" << EOF
+Please create a new merged persona that intelligently combines these two personas:
+
+PERSONA 1 ($persona1):
+$(cat "$file1")
+
+PERSONA 2 ($persona2):
+$(cat "$file2")
+
+Create a new persona named "$output_name" that:
+1. Blends the communication styles in a natural way
+2. Combines core principles where they complement each other
+3. Merges personality traits to create a unique but coherent character
+4. Maintains the markdown structure and sections of a persona file
+5. Resolves any conflicts between the personas thoughtfully
+
+The merged persona should feel like a natural hybrid, not just concatenated content.
+Save the result as a complete persona markdown file.
+EOF
+
+    echo "Merge request created. Please ask Claude to process the merge by reading:"
+    echo "/tmp/persona_merge_request.txt"
+    echo ""
+    echo "After Claude creates the merged persona content, save it to:"
+    echo "$output_file"
+}
+
+# Function to full-merge two personas (simple concatenation)
+full_merge_personas() {
+    local persona1="$1"
+    local persona2="$2"
+    local output_name="$3"
+    
+    # Find persona files
+    local file1 file2
+    if [ -f ".claude/personas/$persona1.md" ]; then
+        file1=".claude/personas/$persona1.md"
+    elif [ -f "$HOME/.claude/personas/$persona1.md" ]; then
+        file1="$HOME/.claude/personas/$persona1.md"
+    else
+        echo "Persona '$persona1' not found."
+        return 1
+    fi
+    
+    if [ -f ".claude/personas/$persona2.md" ]; then
+        file2=".claude/personas/$persona2.md"
+    elif [ -f "$HOME/.claude/personas/$persona2.md" ]; then
+        file2="$HOME/.claude/personas/$persona2.md"
+    else
+        echo "Persona '$persona2' not found."
+        return 1
+    fi
+    
+    # Create output file path (always local)
+    mkdir -p ".claude/personas"
+    local output_file=".claude/personas/${output_name}.md"
+    
+    echo "Creating full-merged persona: $output_name"
+    echo "This will combine both personas by concatenating their content."
+    echo ""
+    read -p "Continue with full merge? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Merge cancelled."
+        return 1
+    fi
+    
+    # Create the merged file
+    {
+        echo "# Merged Persona: $output_name"
+        echo ""
+        echo "This persona is a combination of $persona1 and $persona2."
+        echo ""
+        echo "## From $persona1:"
+        echo ""
+        cat "$file1"
+        echo ""
+        echo ""
+        echo "## From $persona2:"
+        echo ""
+        cat "$file2"
+    } > "$output_file"
+    
+    echo "Full merge completed! Created: $output_file"
+    echo "You can now use: /persona $output_name"
+}
+
 # Function to list all personas (local and global, with indicators)
 list_personas() {
     echo "Available personas:"
@@ -62,14 +200,32 @@ case "$1" in
             echo "Current persona: none"
         fi
         ;;
+    "merge")
+        if [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+            echo "Usage: /persona merge <persona1> <persona2> <output_name>"
+            echo "Example: /persona merge boston hippie boston-hippie"
+            exit 1
+        fi
+        merge_personas "$2" "$3" "$4"
+        ;;
+    "full-merge")
+        if [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+            echo "Usage: /persona full-merge <persona1> <persona2> <output_name>"
+            echo "Example: /persona full-merge boston hippie combined"
+            exit 1
+        fi
+        full_merge_personas "$2" "$3" "$4"
+        ;;
     "")
         echo "Persona Management"
         echo ""
         echo "Usage:"
-        echo "  /persona [name]   - Switch to a persona"
-        echo "  /persona list     - List available personas"
-        echo "  /persona current  - Show current persona"
-        echo "  /persona clear    - Clear current persona"
+        echo "  /persona [name]             - Switch to a persona"
+        echo "  /persona list               - List available personas"
+        echo "  /persona current            - Show current persona"
+        echo "  /persona clear              - Clear current persona"
+        echo "  /persona merge <p1> <p2> <output>     - Intelligently merge two personas"
+        echo "  /persona full-merge <p1> <p2> <output> - Concatenate two personas"
         echo ""
         if [ -f "$STATE_FILE" ]; then
             current=$(cat "$STATE_FILE")
