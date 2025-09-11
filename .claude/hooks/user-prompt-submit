@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# UserPromptSubmit Hook - Injects active persona into user prompts
+# UserPromptSubmit Hook - Efficient persona injection (session start + persona switches only)
 
 # Check for active persona (local first, then global)
 if [ -f ".claude/state/current-persona" ]; then
@@ -11,23 +11,75 @@ else
     exit 0
 fi
 
-# Find persona file (local first, then global)
-if [ -f ".claude/personas/$current_persona.md" ]; then
-    persona_file=".claude/personas/$current_persona.md"
-elif [ -f "$HOME/.claude/personas/$current_persona.md" ]; then
-    persona_file="$HOME/.claude/personas/$current_persona.md"
-else
-    echo "Warning: Active persona '$current_persona' file not found" >&2
-    exit 0
+# State files for tracking injection
+STATE_DIR="${HOME}/.claude/state"
+SESSION_PERSONA_FILE="${STATE_DIR}/session-persona"
+SESSION_ID_FILE="${STATE_DIR}/session-id"
+
+# Create state directory if it doesn't exist
+mkdir -p "$STATE_DIR"
+
+# Generate or get current session ID (simple timestamp-based)
+current_session=""
+if [ -f "$SESSION_ID_FILE" ]; then
+    current_session=$(cat "$SESSION_ID_FILE")
 fi
 
-# Read and inject persona content
-persona_content=$(cat "$persona_file")
+# Check if this is a new session (no session file or very old)
+is_new_session=false
+if [ ! -f "$SESSION_ID_FILE" ]; then
+    is_new_session=true
+else
+    # Check if session is older than 30 minutes (new session)
+    session_time=$(stat -f %m "$SESSION_ID_FILE" 2>/dev/null || echo "0")
+    current_time=$(date +%s)
+    time_diff=$((current_time - session_time))
+    if [ $time_diff -gt 1800 ]; then  # 30 minutes
+        is_new_session=true
+    fi
+fi
 
-echo "<system-reminder>"
-echo "ACTIVE PERSONA: $current_persona"
-echo ""
-echo "$persona_content"
-echo "</system-reminder>"
-echo ""
+# Check if persona has changed since last injection
+persona_changed=false
+if [ -f "$SESSION_PERSONA_FILE" ]; then
+    last_persona=$(cat "$SESSION_PERSONA_FILE")
+    if [ "$current_persona" != "$last_persona" ]; then
+        persona_changed=true
+    fi
+else
+    persona_changed=true
+fi
+
+# Inject persona if: new session OR persona changed
+should_inject=false
+if [ "$is_new_session" = true ] || [ "$persona_changed" = true ]; then
+    should_inject=true
+fi
+
+if [ "$should_inject" = true ]; then
+    # Find persona file (local first, then global)
+    if [ -f ".claude/personas/$current_persona.md" ]; then
+        persona_file=".claude/personas/$current_persona.md"
+    elif [ -f "$HOME/.claude/personas/$current_persona.md" ]; then
+        persona_file="$HOME/.claude/personas/$current_persona.md"
+    else
+        echo "Warning: Active persona '$current_persona' file not found" >&2
+        exit 0
+    fi
+
+    # Read and inject persona content
+    persona_content=$(cat "$persona_file")
+
+    echo "<system-reminder>"
+    echo "ACTIVE PERSONA: $current_persona"
+    echo ""
+    echo "$persona_content"
+    echo "</system-reminder>"
+    echo ""
+
+    # Update state files
+    echo "$(date +%s)" > "$SESSION_ID_FILE"
+    echo "$current_persona" > "$SESSION_PERSONA_FILE"
+fi
+
 echo "User request:"
